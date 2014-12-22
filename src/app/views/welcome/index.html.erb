@@ -95,6 +95,18 @@ function decryptOnClient(base64_encrypted_string, base64_salt, password, key_siz
   }
 }
 
+window.onerror = function(msg, url, line) {
+  var suppressErrorAlert = false;
+
+  var t = "";
+  t = typeof msg;
+  var errorMsg = msg + "\nurl: " + url + "\nline #: " + line + "\ntype: " + t;
+
+  error(errorMsg);
+
+  return false;
+};
+
 </script>
 <p><input type="text" id="text" placeholder="Text" /></p>
 <p><input type="text" id="password" placeholder="Password" /></p>
