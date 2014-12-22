@@ -1,5 +1,6 @@
 Rails.application.routes.draw do
   get 'api/encrypt'
+  post 'api/encrypt'
 
   get 'api/decrypt'
 

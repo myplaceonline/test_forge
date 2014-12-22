@@ -1,6 +1,9 @@
 class ApiController < ApplicationController
   def encrypt
-    render json: "Encrypted"
+    render json: {
+      :success => true,
+      :base64_encrypted_string => params[:text]
+    }
   end
 
   def decrypt

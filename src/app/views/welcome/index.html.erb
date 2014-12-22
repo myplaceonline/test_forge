@@ -1,1 +1,15 @@
 <h1>Test Forge</h1>
+<script type="text/javascript">
+function encryptOnServer() {
+  var text = $("#text").val();
+  $.post("/api/encrypt", { text: text }, function(data) {
+    if (data.success) {
+      alert("Base64 Encrypted String: " + data.base64_encrypted_string);
+    } else {
+      alert("Server error");
+    }
+  });
+}
+</script>
+<p><input type="text" id="text" placeholder="Text" /></p>
+<p><button onclick="encryptOnServer()">Encrypt on Server</button></p>
