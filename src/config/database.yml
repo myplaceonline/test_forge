@@ -1,0 +1,17 @@
+default: &default
+  adapter: postgresql
+  encoding: unicode
+  pool: 5
+  database: testforge_<%= Rails.env %>
+  host: localhost
+  username: testforge_user
+  password: letmein
+
+development:
+  <<: *default
+
+test:
+  <<: *default
+
+production:
+  <<: *default
