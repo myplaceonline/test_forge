@@ -1,15 +1,105 @@
 <h1>Test Forge</h1>
 <script type="text/javascript">
-function encryptOnServer() {
-  var text = $("#text").val();
-  $.post("/api/encrypt", { text: text }, function(data) {
+
+function log(message) {
+  if (console) console.log(message);
+  $("#log").append(message + "\n");
+}
+
+function error(message) {
+  message = "Error: " + message;
+  log(message);
+  alert(message);
+}
+
+function runTest() {
+  encryptOnServer($("#text").val(), $("#password").val(), parseInt($("#key_size").val()));
+}
+
+function encryptOnServer(text, password, key_size) {
+  // First do a remote encryption
+  log("Performing remote encryption of text '" + text + "' with password '" + password + "' and key size " + key_size);
+  $.post("/api/encrypt", {
+    text: text,
+    password: password,
+    key_size: key_size
+  }, function(data) {
     if (data.success) {
-      alert("Base64 Encrypted String: " + data.base64_encrypted_string);
+      // Now do a remote decryption
+      log("Remote encryption successful");
+      log("Remotely encrypted base64 data: " + data.base64_encrypted_string);
+      log("Remotely encrypted base64 salt: " + data.base64_salt);
+      decryptOnServer(
+        data.base64_encrypted_string,
+        data.base64_salt,
+        password,
+        key_size,
+        text
+      );
     } else {
-      alert("Server error");
+      error(data.error);
     }
   });
 }
+
+function decryptOnServer(base64_encrypted_string, base64_salt, password, key_size, original_text) {
+  log("Performing remote decryption...");
+  $.post("/api/decrypt", {
+    base64_encrypted_string: base64_encrypted_string,
+    base64_salt: base64_salt,
+    password: password,
+    key_size: key_size
+  }, function(data) {
+    if (data.success) {
+      // Now do a remote decryption
+      log("Remote decryption successful");
+      log("Remotely decrypted string: " + data.decrypted_string);
+      if (data.decrypted_string != original_text) {
+        error("Remotely encrypted+decrypted string doesn't match original string");
+      } else {
+        // Now perform the local decryption
+        decryptOnClient(base64_encrypted_string, base64_salt, password, key_size, original_text);
+      }
+    } else {
+      error(data.error);
+    }
+  });
+}
+
+function decryptOnClient(base64_encrypted_string, base64_salt, password, key_size, original_text) {
+  log("Performing local decryption...");
+  var salt = forge.util.decode64(base64_salt);
+  var key = forge.pkcs5.pbkdf2(password, salt, 65536, key_size);
+  var val = forge.util.decode64(base64_encrypted_string);
+  
+  var i = val.indexOf("--");
+  var data = forge.util.decode64(val.substring(0, i));
+  var digest = val.substring(i + 2);
+  // TODO verify digest (message_verifier.rb secure_compare)
+  
+  i = data.indexOf("--");
+  var encrypted_data = forge.util.decode64(data.substring(0, i));
+  var iv = forge.util.decode64(data.substring(i + 2));
+
+  var decipher = forge.cipher.createDecipher('AES-CBC', key);
+  decipher.start({iv: iv});
+  decipher.update(forge.util.createBuffer(encrypted_data));
+  if (decipher.finish()) {
+    decrypted_string = decipher.output.toString();
+    log("Locally decrypted string: " + decrypted_string);
+    if (decrypted_string != original_text) {
+      error("Locally decrypted string doesn't match original string");
+    }
+  } else {
+    error("Could not perform decryption");
+  }
+}
+
 </script>
 <p><input type="text" id="text" placeholder="Text" /></p>
-<p><button onclick="encryptOnServer()">Encrypt on Server</button></p>
+<p><input type="text" id="password" placeholder="Password" /></p>
+<p>Key size: <select id="key_size"><option>32</option><option>64</option></select></p>
+<p><button onclick="runTest()">Encrypt on Server</button></p>
+<hr />
+<p>Log:</p>
+<p><textarea id="log" style="width: 90%; height: 400px;"></textarea></p>

@@ -3,6 +3,7 @@ Rails.application.routes.draw do
   post 'api/encrypt'
 
   get 'api/decrypt'
+  post 'api/decrypt'
 
   get 'welcome/index'
 
